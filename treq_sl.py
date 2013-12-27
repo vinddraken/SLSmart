@@ -16,26 +16,44 @@ def read_dict_from_file(filename):
 
 settings = read_dict_from_file("api.key")
 
-payload = {'key': settings["key"], 'S': 'gubbangen',"Z": "slussen"}
+
 
 
 class SLRequester():
 
-    @staticmethod
+    @classmethod
     @defer.inlineCallbacks
-    def make_req():
+    def request(cls,payload={}):
         try:
-            response = yield treq.get('https://api.trafiklab.se/sl/reseplanerare.json',
-                      headers={'Content-Type': ['application/json']},
-                      params=payload
-                      )
-            content = yield treq.text_content(response)
-            json_content = json.loads(content)
-            content = json.dumps(json_content, ensure_ascii=False,indent =2)
-            defer.returnValue(content.encode("utf-8"))
+            missing = []
+            if not "S" in payload:
+                missing.append("start")
+            if not "Z" in payload:
+                missing.append("destination")
+
+            if not missing:
+                payload["key"] = settings["key"]
+                response = yield treq.get('https://api.trafiklab.se/sl/reseplanerare.json',
+                          headers={'Content-Type': ['application/json']},
+                          params=payload
+                          )
+                result = yield cls.parse(response)
+                defer.returnValue(result)
+            else:
+                defer.returnValue("%s%s" %("missing", missing))
 
         except Exception as e:
             print e
+
+    @classmethod
+    @defer.inlineCallbacks
+    def parse(cls,response):
+        content = yield treq.text_content(response)
+        json_content = json.loads(content)
+        content = json.dumps(json_content, ensure_ascii=False,indent =2)
+        defer.returnValue(content.encode("utf-8"))
+
+
 
 
 class SLSmartResource(resource.Resource):
@@ -48,7 +66,17 @@ class SLSmartResource(resource.Resource):
 
     @defer.inlineCallbacks
     def get_response(self,request):
-        result = yield SLRequester.make_req()
+        payload = {}
+        for arg in request.args:
+            payload[arg] = request.args[arg][0]
+
+        result = yield SLRequester.request(payload)
+        print repr(request.args)
+
+
+
+
+
         request.setHeader("Content-Type", "application/json; charset=utf-8")
         request.write(result)
         request.finish()
