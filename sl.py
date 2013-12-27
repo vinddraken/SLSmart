@@ -3,7 +3,14 @@ import requests
 import json
 
 
-payload = {'key': '3cccb4dc80567abac4c56143b3f05cae', 'S': 'gubbangen',"Z": "slussen"}
+
+def read_dict_from_file(filename):
+    with open(filename, "r+") as jsonfile:
+        return json.loads(jsonfile.read())
+
+settings = read_dict_from_file("api.key")
+
+payload = {'key': settings["key"], 'S': 'gubbangen',"Z": "slussen"}
 
 r = requests.get("https://api.trafiklab.se/sl/reseplanerare.json", params=payload)
 
