@@ -17,6 +17,10 @@ def read_dict_from_file(filename):
 settings = read_dict_from_file("api.key")
 
 
+import logging
+logging.basicConfig(filename="SLSmart.log", level=logging.DEBUG)
+requests_log = logging.getLogger("SLSmart")
+requests_log.setLevel(logging.DEBUG)
 
 
 class SLRequester():
@@ -71,12 +75,6 @@ class SLSmartResource(resource.Resource):
             payload[arg] = request.args[arg][0]
 
         result = yield SLRequester.request(payload)
-        print repr(request.args)
-
-
-
-
-
         request.setHeader("Content-Type", "application/json; charset=utf-8")
         request.write(result)
         request.finish()
